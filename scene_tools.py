@@ -36,6 +36,9 @@ class Object:
         self.speed = np.array([0.0, 0.0])
 
 
+    def set_width(self, width):
+        self.width = width
+
     def simulate(self, dt):
         self.points += self.speed * dt
     
