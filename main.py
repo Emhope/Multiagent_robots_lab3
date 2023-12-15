@@ -6,7 +6,7 @@ import time
 import random
 
 
-def chase(chaser: scene_tools.Object, goal: scene_tools.Object, t=1.0, max_speed=10.0, min_distance=20) -> None:
+def chase(chaser: scene_tools.Object, goal: scene_tools.Object, t=1.0, max_speed=10.0, min_distance=20) -> bool:
     if np.linalg.norm(goal.get_middle_point() - chaser.get_middle_point()) < min_distance:
         chaser.set_speed([0, 0])
         return True
@@ -36,14 +36,29 @@ def main(width=600, height=400, fps=30):
     screen = pygame.display.set_mode((width, height))
 
     max_speed = 100
-    robots = [scene_tools.Object(scene_tools.create_square([random.randint(0, width), random.randint(0, height)], 10), color=(255, 0, 0), width=0) for _ in range(random.randint(5, 7))]
+    robots = [
+        scene_tools.Object(
+            scene_tools.create_square([random.randint(0, width), random.randint(0, height)], 10), 
+            color=(255, 0, 0), 
+            width=0
+        ) 
+        for _ in range(random.randint(5, 7))
+    ]
+
     for i, robot in enumerate(robots):
         robot.set_color((int(255/len(robots)*i), 0, 0))
     
-    list_goals = [scene_tools.Object(scene_tools.create_square([random.randint(50, width), random.randint(50, height)], 10), color=(30, 30, 230), width=0) for _ in range(random.randint(13, 15))]
-    unreached_goals = list_goals.copy()
-    current_goal = find_nearest(robots[-1], unreached_goals)
-    unreached_goals.remove(current_goal)
+    goals = [
+        scene_tools.Object(
+            scene_tools.create_square([random.randint(50, width), random.randint(50, height)], 10),
+            color=(40, 90, 230),
+            width=1
+            )
+        for _ in range(random.randint(13, 15))
+        ]
+    list_goals = goals.copy()
+    route = [find_nearest(robot=robots[-1], goals=list_goals)]
+    list_goals.remove(route[0])
 
     start = time.perf_counter()
     running = True
@@ -56,22 +71,38 @@ def main(width=600, height=400, fps=30):
 
         screen.fill((255, 255, 255))
 
-        if chase(chaser=robots[-1], goal=current_goal, max_speed=max_speed):
-            try:
-                current_goal.set_color((0, 255, 0))
-                current_goal = find_nearest(robots[-1], unreached_goals)
-                unreached_goals.remove(current_goal)
-                #current_goal = next(goals)
-            except:
-                running = False
+        if all(not robot.active for robot in robots):
+            running = False
 
         for i, robot in enumerate(robots):
-            if i < len(robots) - 1:
-                chase(chaser=robot, goal=robots[i+1], max_speed=max_speed, min_distance=50)    
-            robot.simulate(1/fps)
+            if robot.active:
+                
+                if i + 1 < len(robots):
+                    next_robot = robots[i+1]
+                    if robot.target == next_robot.target:
+                        chase(chaser=robot, goal=robots[i+1], max_speed=max_speed + 10 * i, min_distance=50)
+                    else:
+                        if chase(chaser=robot, goal=route[robot.target], max_speed=max_speed):
+                            route[robot.target].width += 1
+                            robot.target += 1
+                            
+
+                else:
+                    if chase(chaser=robot, goal=route[robot.target], max_speed=max_speed):
+                        route[robot.target].color = (0, 255, 0)
+                        if list_goals:
+                            next_goal = find_nearest(robot=robot, goals=list_goals)
+                            route.append(next_goal)
+                            list_goals.remove(next_goal)
+
+                        robot.target += 1
+                        
+                if robot.target >= len(route):
+                    robot.active = False
+                robot.simulate(1/fps)
             robot.draw(screen)
 
-        for goal in list_goals:
+        for goal in goals:
             goal.draw(screen)
 
         pygame.display.flip()

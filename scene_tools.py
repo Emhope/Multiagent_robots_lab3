@@ -5,19 +5,6 @@ def create_square(pos, r):
     return np.array([pos + r * np.array([np.cos(angle), np.sin(angle)]) for angle in map(np.deg2rad, [45, 135, 225, 315])], dtype=int)
 
 
-def rotate(arr: np.ndarray, alpha: float) -> np.array:
-    '''
-    rotating array by alpha degs
-    '''
-    alpha = np.deg2rad(alpha)
-    rot = np.array([
-        [np.cos(alpha) ,-np.sin(alpha)],
-        [np.sin(alpha), np.cos(alpha)]
-    ])
-
-    return arr.dot(rot)
-
-
 def vector_angle(vector: np.ndarray) -> float:
     angle = np.rad2deg(np.arctan(vector[1] / vector[0]))
     if vector[0] < 0 and vector[1] < 0:
@@ -34,6 +21,8 @@ class Object:
         self.width = width
         self.color = color
         self.speed = np.array([0.0, 0.0])
+        self.target = 0
+        self.active = True
 
 
     def set_width(self, width):
@@ -47,9 +36,6 @@ class Object:
     
     def get_speed(self):
         return self.speed
-    
-    def rotate(self, angle):
-        self.points = rotate(self.points, angle)
 
     def set_color(self, color):
         self.color = color
